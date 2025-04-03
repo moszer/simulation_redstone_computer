@@ -1,0 +1,176 @@
+.machine-code-container {
+    margin: 20px 0;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.binary-grid-row {
+    display: grid;
+    grid-template-columns: minmax(5em, auto) repeat(16, minmax(0, 1fr));
+    gap: 2px;
+    padding: 6px 0;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.binary-grid-row:hover {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+}
+
+.binary-grid-row.current-instruction {
+    background-color: rgba(0, 123, 255, 0.15);
+    outline: 2px solid #0056b3;
+    outline-offset: -2px;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.binary-grid-row.manual-selection-highlight {
+    background-color: rgba(40, 167, 69, 0.15);
+    outline: 2px solid #1e7e34;
+    outline-offset: -2px;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+}
+
+.binary-grid-row.incomplete {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.line-number-cell {
+    padding: 6px 12px;
+    text-align: right;
+    color: #495057;
+    font-weight: 600;
+    border-right: 2px solid #e9ecef;
+    user-select: none;
+    background-color: #f8f9fa;
+    border-radius: 4px 0 0 4px;
+}
+
+.bit-cell {
+    text-align: center;
+    padding: 6px 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.95em;
+    border-right: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    cursor: default;
+    border-radius: 4px;
+}
+
+.bit-cell:hover {
+    transform: scale(1.1);
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.bit-cell.bin-opcode {
+    background-color: #ff6b6b;
+    border-color: #ff5252;
+    color: #000000;
+}
+
+.bit-cell.bin-reg {
+    background-color: #4dabf7;
+    border-color: #339af0;
+    color: #000000;
+}
+
+.bit-cell.bin-imm {
+    background-color: #ffd43b;
+    border-color: #fcc419;
+    color: #000000;
+}
+
+.bit-cell.bin-addr {
+    background-color: #51cf66;
+    border-color: #40c057;
+    color: #000000;
+}
+
+.bit-cell.bin-cond {
+    background-color: #ff8787;
+    border-color: #ff6b6b;
+    color: #000000;
+}
+
+.bit-cell.bin-offset {
+    background-color: #ffa94d;
+    border-color: #ff922b;
+    color: #000000;
+}
+
+.bit-cell.bin-unused {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #adb5bd;
+}
+
+/* Custom scrollbar for the machine code container */
+.machine-code-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.machine-code-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.machine-code-container::-webkit-scrollbar-thumb {
+    background: #adb5bd;
+    border-radius: 5px;
+    border: 2px solid #f1f1f1;
+}
+
+.machine-code-container::-webkit-scrollbar-thumb:hover {
+    background: #868e96;
+}
+
+/* Legend hover effects */
+.legend-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.legend-item:hover .color-box {
+    transform: scale(1.1);
+}
+
+/* Header styles */
+.header-number-cell {
+    font-weight: 700;
+    color: #212529;
+    padding: 8px 12px;
+    text-align: right;
+    border-right: 2px solid #e9ecef;
+    background-color: #f8f9fa;
+    border-radius: 4px 0 0 4px;
+    font-size: 0.95em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .binary-grid-row {
+        font-size: 0.85em;
+        gap: 1px;
+    }
+    
+    .bit-cell {
+        padding: 4px 2px;
+    }
+    
+    .line-number-cell {
+        padding: 4px 8px;
+    }
+} 
