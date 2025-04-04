@@ -112,7 +112,7 @@ DELAY_LOOP:
 
 // --- Assembler Logic (1-based Word Address Modification) ---
 // (No changes needed from previous version)
-class Batpu2Assembler {
+class EightBitCPUSimulatorAssembler {
     constructor() {
         this.registers = registersConst; this.opcodes = opcodesConst; this.conditions = conditionsConst;
         this.labels = {}; this.machineCode = [];
@@ -174,7 +174,7 @@ class Batpu2Assembler {
 
 // --- Simulator Logic (1-based Word Address Modification) ---
 // (No changes needed from previous version)
-class Batpu2Simulator {
+class EightBitCPUSimulator {
     constructor() { this.maxCycles = 1000000; this.reset(); }
     reset() { this.registers=new Uint8Array(NUM_REGISTERS); this.pc=1; this.flags={Z:0,C:0}; this.stack=[]; this.halted=false; this.instructionMemory=new Uint8Array(INST_MEM_SIZE_BYTES); this.dataMemory=new Uint8Array(DATA_MEM_SIZE); this.pixelX=0; this.pixelY=0; this.cycleCount=0; this.screenBuffer=Array(SCREEN_HEIGHT).fill(0).map(()=>Array(SCREEN_WIDTH).fill(0)); this.ioReadTrigger=null; this.screenUpdateTrigger=null; }
     loadCode(machineCode) { this.reset(); if(machineCode.length > INST_MEM_SIZE_BYTES) throw new Error("Machine code too large for byte buffer."); this.instructionMemory.set(machineCode); }
@@ -721,7 +721,7 @@ function App() {
     // Initialize Simulator
     useEffect(() => {
         console.log("Initializing simulator (1-based Word Address Mode)...");
-        const simulatorInstance = new Batpu2Simulator(); // Simulator now starts PC at 1
+        const simulatorInstance = new EightBitCPUSimulator(); // Simulator now starts PC at 1
         simulatorRef.current = simulatorInstance;
         
         // Initialize screen buffer with current dimensions
@@ -779,7 +779,7 @@ function App() {
             setAssemblerLogs(prev => [...prev, "Error: Simulator not initialized."]); 
             return; 
         }
-        const assembler = new Batpu2Assembler(); // Assembler now works with 1-based word addresses internally
+        const assembler = new EightBitCPUSimulatorAssembler(); // Assembler now works with 1-based word addresses internally
         try {
             console.log("Assembling code (1-based Word Address Mode)...");
             const { machineCode: mc, logs } = assembler.assemble(assemblyCode);
@@ -815,7 +815,7 @@ function App() {
             setSelectedBinaryAddr(null);
 
             // Create a new simulator instance with current screen dimensions
-            const newSimulator = new Batpu2Simulator();
+            const newSimulator = new EightBitCPUSimulator();
             newSimulator.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
             newSimulator.loadCode(mc); // Resets simulator PC to 1
             simulatorRef.current = newSimulator;
@@ -1016,7 +1016,7 @@ function App() {
         <div className="min-h-screen bg-base-300 transition-all duration-300">
             <div className="navbar bg-base-300 shadow-lg transition-all duration-300">
                 <div className="flex-1">
-                    <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">Batpu2 CPU Simulator</a>
+                    <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">8bit CPU Simulator</a>
                 </div>
                 <div className="flex-none gap-2">
                     <div className="tooltip tooltip-left" data-tip="Change Theme">
@@ -1043,7 +1043,7 @@ function App() {
                                     onScroll={handleEditorScroll}
                                     spellCheck="false"
                                     className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content w-full h-64 pl-12"
-                                    placeholder="Enter Batpu2 assembly code..."
+                                    placeholder="Enter 8bit CPU assembly code..."
                                 />
                             </div>
                             <div className="flex flex-wrap gap-2 mt-4">

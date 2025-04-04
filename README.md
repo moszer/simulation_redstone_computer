@@ -1,4 +1,4 @@
-# Batpu2 CPU Simulator
+# 8bit CPU Simulator
 
 A web-based 8-bit CPU simulator with assembly language support.
 
