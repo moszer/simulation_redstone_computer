@@ -653,6 +653,28 @@ function App() {
     const [interactionLog, setInteractionLog] = useState([]);
     const [selectedBinaryAddr, setSelectedBinaryAddr] = useState(null); // Stores 1-based word address
 
+    // Add theme state
+    const [theme, setTheme] = useState(() => {
+        return localStorage.getItem('theme') || 'corporate';
+    });
+
+    // Update theme when it changes
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme]);
+
+    // Listen for theme change events
+    useEffect(() => {
+        const handleThemeChange = (event) => {
+            setTheme(event.detail.theme);
+        };
+
+        window.addEventListener('themeChanged', handleThemeChange);
+        
+        return () => {
+            window.removeEventListener('themeChanged', handleThemeChange);
+        };
+    }, []);
 
     // Refs
     const simulatorRef = useRef(null);
@@ -912,95 +934,130 @@ function App() {
 
     // --- JSX Rendering ---
     return (
-        <div className="min-h-screen bg-base-300 transition-all duration-300" data-theme="corporate">
+        <div className="min-h-screen bg-base-300 transition-all duration-300">
             <div className="navbar bg-base-300 shadow-lg transition-all duration-300">
                 <div className="flex-1">
-                    <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">CPU 8bit Simulator</a>
+                    <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">Batpu2 CPU Simulator</a>
                 </div>
                 <div className="flex-none">
                     <ThemeSelector />
                 </div>
             </div>
-            <main className="main-layout">
-                {/* Left Panel */}
-                <section className="panel editor-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90">
-                    <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content">Code & Assembly</h2>
-                    <div className="editor-container">
-                        <label htmlFor="assemblyEditor" className="input-label transition-all duration-300 hover:text-primary text-base-content">Assembly Code:</label>
-                        <div className="editor-wrapper">
-                            <div ref={lineNumbersRef} className="line-numbers-display transition-all duration-300 hover:bg-base-300/50 text-base-content/70" aria-hidden="true">
-                                {lineNumbersElements}
+            <main className="container mx-auto px-4 py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Panel */}
+                    <section className="panel editor-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
+                        <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">Code & Assembly</h2>
+                        <div className="editor-container">
+                            <label htmlFor="assemblyEditor" className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">Assembly Code:</label>
+                            <div className="editor-wrapper relative">
+                                <div ref={lineNumbersRef} className="line-numbers-display transition-all duration-300 hover:bg-base-300/50 text-base-content/70 absolute left-0 top-0 h-full overflow-y-auto" aria-hidden="true">
+                                    {lineNumbersElements}
+                                </div>
+                                <textarea
+                                    ref={editorRef}
+                                    id="assemblyEditor"
+                                    value={assemblyCode}
+                                    onChange={(e) => setAssemblyCode(e.target.value)}
+                                    onScroll={handleEditorScroll}
+                                    spellCheck="false"
+                                    className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content w-full h-64 pl-12"
+                                    placeholder="Enter Batpu2 assembly code..."
+                                />
                             </div>
-                            <textarea
-                                ref={editorRef}
-                                id="assemblyEditor"
-                                value={assemblyCode}
-                                onChange={(e) => setAssemblyCode(e.target.value)}
-                                onScroll={handleEditorScroll}
-                                spellCheck="false"
-                                className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content"
-                                placeholder="Enter Batpu2 assembly code..."
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                <button 
+                                    onClick={handleAssemble} 
+                                    className="btn btn-primary transition-all duration-300 hover:scale-105 active:scale-95"
+                                >
+                                    {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
+                                </button>
+                                <button 
+                                    onClick={handleToggleByteOrder} 
+                                    className="btn btn-secondary transition-all duration-300 hover:scale-105 active:scale-95" 
+                                    title="สลับลำดับการแสดงผล Byte"
+                                >
+                                    สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
+                                </button>
+                            </div>
+                        </div>
+                        <div className="mt-6">
+                            <MachineCodeView
+                                machineCode={machineCode}
+                                currentPC={simState?.pc}
+                                isByteSwapped={isByteSwapped}
+                                onBinaryLineClick={handleBinaryLineClick}
+                                selectedBinaryAddr={selectedBinaryAddr}
                             />
                         </div>
-                        <div>
-                            <button 
-                                onClick={handleAssemble} 
-                                className="assemble-button transition-all duration-300 hover:bg-primary-focus hover:scale-105 active:scale-95 bg-primary text-primary-content"
-                            >
-                                {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
-                            </button>
-                            <button 
-                                onClick={handleToggleByteOrder} 
-                                className="toggle-byte-button transition-all duration-300 hover:bg-secondary-focus hover:scale-105 active:scale-95 bg-secondary text-secondary-content" 
-                                title="สลับลำดับการแสดงผล Byte"
-                            >
-                                สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
-                            </button>
+                        <div className="logs-container transition-all duration-300 hover:bg-base-300/50 mt-6 p-4 rounded-lg">
+                            <label className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">ผลลัพธ์ Assembler:</label>
+                            <pre className="logs transition-all duration-300 hover:bg-base-300/50 text-base-content/90 overflow-x-auto">{assemblerLogs.join('\n')}</pre>
                         </div>
-                    </div>
-                    <MachineCodeView
-                        machineCode={machineCode}
-                        currentPC={simState?.pc}
-                        isByteSwapped={isByteSwapped}
-                        onBinaryLineClick={handleBinaryLineClick}
-                        selectedBinaryAddr={selectedBinaryAddr}
-                    />
-                    <div className="logs-container transition-all duration-300 hover:bg-base-300/50">
-                        <label className="input-label transition-all duration-300 hover:text-primary text-base-content">ผลลัพธ์ Assembler:</label>
-                        <pre className="logs transition-all duration-300 hover:bg-base-300/50 text-base-content/90">{assemblerLogs.join('\n')}</pre>
-                    </div>
-                </section>
+                    </section>
 
-                {/* Right Panel */}
-                <section className="panel simulator-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90">
-                    <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content">ส่วนควบคุมและแสดงผล Simulator</h2>
-                    <SimulatorControls
-                        isRunning={isRunning} 
-                        isHalted={simState?.halted ?? true} 
-                        hasCode={!!machineCode}
-                        onRun={handleRun} 
-                        onPause={handlePause} 
-                        onStep={handleStep} 
-                        onReset={handleReset}
-                        speed={simSpeed} 
-                        onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
-                    />
-                    {simState ? (
-                        <div className="simulator-state-display">
-                            <StatusInfo isRunning={isRunning} state={simState} />
-                            <RegistersView
-                                registers={simState.registers}
-                                selectedRegisterIndices={selectedRegisterIndices}
-                                onRegisterClick={handleRegisterClick}
+                    {/* Right Panel */}
+                    <section className="panel simulator-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
+                        <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">ส่วนควบคุมและแสดงผล Simulator</h2>
+                        <div className="space-y-6">
+                            <SimulatorControls
+                                isRunning={isRunning} 
+                                isHalted={simState?.halted ?? true} 
+                                hasCode={!!machineCode}
+                                onRun={handleRun} 
+                                onPause={handlePause} 
+                                onStep={handleStep} 
+                                onReset={handleReset}
+                                speed={simSpeed} 
+                                onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
                             />
-                            <ScreenView screenBuffer={simState.screenBuffer} />
-                            <InteractionLogView logs={interactionLog} />
+                            {simState ? (
+                                <div className="simulator-state-display space-y-6">
+                                    <StatusInfo isRunning={isRunning} state={simState} />
+                                    <RegistersView
+                                        registers={simState.registers}
+                                        selectedRegisterIndices={selectedRegisterIndices}
+                                        onRegisterClick={handleRegisterClick}
+                                    />
+                                    <ScreenView screenBuffer={simState.screenBuffer} />
+                                    <InteractionLogView logs={interactionLog} />
+                                </div>
+                            ) : (
+                                <p className="info-text transition-all duration-300 hover:bg-base-300/50 hover:text-primary text-base-content/80 p-4 rounded-lg">กด "Assemble Code" เพื่อเริ่มต้น</p>
+                            )}
                         </div>
-                    ) : (
-                        <p className="info-text transition-all duration-300 hover:bg-base-300/50 hover:text-primary text-base-content/80">กด "Assemble Code" เพื่อเริ่มต้น</p>
-                    )}
-                </section>
+                    </section>
+                </div>
             </main>
+            
+            {/* Footer with License Information */}
+            <footer className="footer footer-center p-4 bg-base-300 text-base-content border-t border-base-300 mt-6">
+                <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                        <span>Licensed under</span>
+                        <a 
+                            href="https://github.com/moszer/simulation_redstone_computer/blob/main/LICENSE" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="badge badge-primary hover:badge-primary-focus transition-all duration-300"
+                        >
+                            MIT License
+                        </a>
+                    </div>
+                    <div className="text-sm opacity-70 text-center">
+                        © 2024 Pattarapon Parkodchue (
+                        <a 
+                            href="https://github.com/moszer" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="link link-primary hover:link-primary-focus transition-all duration-300"
+                        >
+                            @moszer
+                        </a>
+                        )
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

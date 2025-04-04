@@ -65,23 +65,30 @@
     display: flex;
     flex-direction: column;
     font-family: monospace;
-    font-size: 0.95em;
+    font-size: 0.85em;
     line-height: 1.5em;
-    padding: 8px 4px 8px 8px;
+    padding: 8px 2px 8px 4px;
     text-align: right;
     color: #999;
     background-color: #f7f7f7;
     user-select: none;
     overflow-y: hidden;
-    width: 5em;
+    width: 3em;
     border-right: 1px solid #eee;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
 }
 
 .asm-line-number {
     display: block;
-    padding-right: 4px;
+    padding-right: 2px;
     width: 100%;
     text-align: right;
+    height: 1.5em;
+    line-height: 1.5em;
 }
 
 .highlighted-asm-line {
@@ -98,7 +105,7 @@
     line-height: 1.5em;
     border: none;
     border-radius: 0;
-    padding: 8px;
+    padding: 8px 8px 8px 3.5em;
     resize: none;
     outline: none;
     overflow-y: scroll;

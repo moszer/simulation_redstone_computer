@@ -1,3 +1,29 @@
+# Batpu2 CPU Simulator
+
+A web-based 8-bit CPU simulator with assembly language support.
+
+## Features
+
+- Assembly language editor with syntax highlighting
+- Real-time machine code visualization
+- Interactive register and memory inspection
+- Visual screen output
+- Step-by-step execution
+- Multiple theme support
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Pattarapon Parkodchue ([@moszer](https://github.com/moszer))
+
+## Acknowledgments
+
+- Built with React and DaisyUI
+- Inspired by classic 8-bit computer architectures
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
