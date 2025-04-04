@@ -36,9 +36,79 @@ const ADDRConst = {
 const INST_MEM_SIZE_BYTES = 2048;
 const INST_MEM_SIZE_WORDS = INST_MEM_SIZE_BYTES / 2; // Max number of 16-bit instructions (1024)
 const DATA_MEM_SIZE = 256; const NUM_REGISTERS = 16;
-const STACK_DEPTH = 16; const SCREEN_WIDTH = 32; const SCREEN_HEIGHT = 32;
+const STACK_DEPTH = 16; const SCREEN_WIDTH = 10; const SCREEN_HEIGHT = 9;
 const MAX_INTERACTION_LOG_SIZE = 100; // Limit log size
 
+// --- Default Assembly Code ---
+// *** UPDATED defaultAssemblyCode to Bouncing Ball ***
+const defaultAssemblyCode = `
+// Bouncing Ball Demo (Clears previous pixel)
+LDI r1, 1      // ball_x = 1
+LDI r2, 1      // ball_y = 1
+LDI r3, 1      // dx = 1
+LDI r4, 1      // dy = 1
+LDI r5, 10      // WIDTH = 9 (0-9)
+LDI r6, 9      // HEIGHT = 8 (0-8)
+LDI r11, 243   // CLEAR_PIXEL address
+LDI r12, 240   // X Address
+LDI r13, 241   // Y Address
+LDI r14, 242   // DRAW_PIXEL address
+LDI r15, 245   // BUFFER_SCREEN address
+LDI r8, 1      // Const 1
+LDI r7, 246    // SCREEN_CLEAR address
+STR r7, r8, 0  // Clear screen initially
+
+LOOP_START:
+    // Calculate next position
+    ADD r1, r3, r9  // next_x = ball_x + dx
+    ADD r2, r4, r10 // next_y = ball_y + dy
+
+    // Boundary check X (if next_x < 0 or next_x >= WIDTH)
+    SUB r9, r0, r7  // r7 = next_x - 0
+    BRH LT, NEGATE_DX
+    SUB r9, r5, r7  // r7 = next_x - WIDTH
+    BRH GE, NEGATE_DX
+    JMP CHECK_Y
+NEGATE_DX:
+    SUB r0, r3, r3  // dx = -dx
+    ADD r1, r3, r9  // Recalculate next_x
+CHECK_Y:
+    // Boundary check Y (if next_y < 0 or next_y >= HEIGHT)
+    SUB r10, r0, r7 // r7 = next_y - 0
+    BRH LT, NEGATE_DY
+    SUB r10, r6, r7 // r7 = next_y - HEIGHT
+    BRH GE, NEGATE_DY
+    JMP UPDATE_POS
+NEGATE_DY:
+    SUB r0, r4, r4  // dy = -dy
+    ADD r2, r4, r10 // Recalculate next_y
+
+UPDATE_POS:
+    // 1. Clear the pixel at the CURRENT position (r1, r2)
+    STR r12, r1, 0  // Set Pixel X to current ball_x (r1)
+    STR r13, r2, 0  // Set Pixel Y to current ball_y (r2)
+    STR r11, r8, 0  // Send Clear Pixel command
+
+    // 2. Update ball coordinates to the calculated next position
+    ADD r9, r0, r1  // ball_x = next_x
+    ADD r10, r0, r2 // ball_y = next_y
+
+    // 3. Draw the pixel at the NEW position (r1, r2)
+    STR r12, r1, 0  // Set Pixel X to new ball_x
+    STR r13, r2, 0  // Set Pixel Y to new ball_y
+    STR r14, r8, 0  // Send Draw Pixel command
+
+    // 4. Update the screen buffer to show changes
+    STR r15, r8, 0  // Buffer Screen command
+
+    // Simple Delay Loop (Using r7 as counter)
+    LDI r7, 20     // Adjust delay value (Lower value = faster)
+DELAY_LOOP:
+    SUB r7, r8, r7  // r7 = r7 - 1
+    BRH GE, DELAY_LOOP // Loop if counter (r7) >= 0
+
+    JMP LOOP_START
+`;
 
 // --- Assembler Logic (1-based Word Address Modification) ---
 // (No changes needed from previous version)
@@ -509,38 +579,38 @@ const StatusInfo = ({ isRunning, state }) => {
     const statusClass = isRunning ? 'status-running' : (state?.halted ? 'status-halted' : 'status-paused');
     const pcValue = state?.pc; // Now represents 1-based word address
     return (
-        <div className={`display-section status-info ${statusClass} bg-base-200 p-4 rounded-lg shadow-md transition-all duration-300`}>
-            <h4 className="text-lg font-bold mb-4 text-base-content">Status</h4>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">State</div>
-                    <div className="stat-value text-lg text-base-content">{statusText}</div>
+        <div className={`display-section status-info ${statusClass} bg-base-200 p-2 sm:p-4 rounded-lg shadow-md transition-all duration-300`}>
+            <h4 className="text-base sm:text-lg font-bold mb-2 sm:mb-4 text-base-content">Status</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">State</div>
+                    <div className="stat-value text-base sm:text-lg text-base-content">{statusText}</div>
                 </div>
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">PC (Word Addr)</div>
-                    <div className="stat-value text-lg text-base-content">
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">PC (Word Addr)</div>
+                    <div className="stat-value text-base sm:text-lg text-base-content break-all">
                         {pcValue !== undefined && pcValue !== null ? 
                             `${pcValue} (Byte Addr 0x${((pcValue - 1) * 2).toString(16).padStart(4, '0')})` : 
                             '---'}
                     </div>
                 </div>
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">Cycle</div>
-                    <div className="stat-value text-lg text-base-content">{state?.cycleCount ?? 0}</div>
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">Cycle</div>
+                    <div className="stat-value text-base sm:text-lg text-base-content">{state?.cycleCount ?? 0}</div>
                 </div>
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">Stack Depth</div>
-                    <div className="stat-value text-lg text-base-content">{state?.stack?.length ?? 0}</div>
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">Stack Depth</div>
+                    <div className="stat-value text-base sm:text-lg text-base-content">{state?.stack?.length ?? 0}</div>
                 </div>
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">Z Flag</div>
-                    <div className={`stat-value text-lg ${state?.flags?.Z ? 'text-success' : 'text-error'}`}>
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">Z Flag</div>
+                    <div className={`stat-value text-base sm:text-lg ${state?.flags?.Z ? 'text-success' : 'text-error'}`}>
                         {state?.flags?.Z ?? '-'}
                     </div>
                 </div>
-                <div className="stat bg-base-300 rounded-lg p-3 shadow-sm">
-                    <div className="stat-title text-base-content/70">C Flag</div>
-                    <div className={`stat-value text-lg ${state?.flags?.C ? 'text-success' : 'text-error'}`}>
+                <div className="stat bg-base-300 rounded-lg p-2 sm:p-3 shadow-sm">
+                    <div className="stat-title text-sm sm:text-base text-base-content/70">C Flag</div>
+                    <div className={`stat-value text-base sm:text-lg ${state?.flags?.C ? 'text-success' : 'text-error'}`}>
                         {state?.flags?.C ?? '-'}
                     </div>
                 </div>
@@ -563,78 +633,40 @@ const InteractionLogView = ({ logs }) => {
     );
 };
 
-
-// --- Default Assembly Code ---
-// *** UPDATED defaultAssemblyCode to Bouncing Ball ***
-const defaultAssemblyCode = `
-// Bouncing Ball Demo (Clears previous pixel)
-LDI r1, 1      // ball_x = 1
-LDI r2, 1      // ball_y = 1
-LDI r3, 1      // dx = 1
-LDI r4, 1      // dy = 1
-LDI r5, 31     // WIDTH = 31 (0-31)
-LDI r6, 30     // HEIGHT = 30 (0-30)
-LDI r11, 243   // CLEAR_PIXEL address
-LDI r12, 240   // X Address
-LDI r13, 241   // Y Address
-LDI r14, 242   // DRAW_PIXEL address
-LDI r15, 245   // BUFFER_SCREEN address
-LDI r8, 1      // Const 1
-LDI r7, 246    // SCREEN_CLEAR address
-STR r7, r8, 0  // Clear screen initially
-
-LOOP_START:
-    // Calculate next position
-    ADD r1, r3, r9  // next_x = ball_x + dx
-    ADD r2, r4, r10 // next_y = ball_y + dy
-
-    // Boundary check X (if next_x < 0 or next_x >= WIDTH)
-    SUB r9, r0, r7  // r7 = next_x - 0
-    BRH LT, NEGATE_DX
-    SUB r9, r5, r7  // r7 = next_x - WIDTH
-    BRH GE, NEGATE_DX
-    JMP CHECK_Y
-NEGATE_DX:
-    SUB r0, r3, r3  // dx = -dx
-    ADD r1, r3, r9  // Recalculate next_x
-CHECK_Y:
-    // Boundary check Y (if next_y < 0 or next_y >= HEIGHT)
-    SUB r10, r0, r7 // r7 = next_y - 0
-    BRH LT, NEGATE_DY
-    SUB r10, r6, r7 // r7 = next_y - HEIGHT
-    BRH GE, NEGATE_DY
-    JMP UPDATE_POS
-NEGATE_DY:
-    SUB r0, r4, r4  // dy = -dy
-    ADD r2, r4, r10 // Recalculate next_y
-
-UPDATE_POS:
-    // 1. Clear the pixel at the CURRENT position (r1, r2)
-    STR r12, r1, 0  // Set Pixel X to current ball_x (r1)
-    STR r13, r2, 0  // Set Pixel Y to current ball_y (r2)
-    STR r11, r8, 0  // Send Clear Pixel command
-
-    // 2. Update ball coordinates to the calculated next position
-    ADD r9, r0, r1  // ball_x = next_x
-    ADD r10, r0, r2 // ball_y = next_y
-
-    // 3. Draw the pixel at the NEW position (r1, r2)
-    STR r12, r1, 0  // Set Pixel X to new ball_x
-    STR r13, r2, 0  // Set Pixel Y to new ball_y
-    STR r14, r8, 0  // Send Draw Pixel command
-
-    // 4. Update the screen buffer to show changes
-    STR r15, r8, 0  // Buffer Screen command
-
-    // Simple Delay Loop (Using r7 as counter)
-    LDI r7, 20     // Adjust delay value (Lower value = faster)
-DELAY_LOOP:
-    SUB r7, r8, r7  // r7 = r7 - 1
-    BRH GE, DELAY_LOOP // Loop if counter (r7) >= 0
-
-    JMP LOOP_START
-`;
-
+// Screen Configuration Component
+const ScreenConfig = ({ width, height, onWidthChange, onHeightChange }) => (
+    <div className="screen-config bg-base-200 p-4 rounded-lg shadow-md mb-4">
+        <h4 className="text-base font-bold mb-2 text-base-content">Screen Configuration</h4>
+        <div className="grid grid-cols-2 gap-4">
+            <div className="form-control">
+                <label className="label">
+                    <span className="label-text text-base-content">Width</span>
+                </label>
+                <input 
+                    type="number" 
+                    min="1" 
+                    max="32" 
+                    value={width} 
+                    onChange={(e) => onWidthChange(parseInt(e.target.value) || 1)}
+                    className="input input-bordered w-full" 
+                />
+            </div>
+            <div className="form-control">
+                <label className="label">
+                    <span className="label-text text-base-content">Height</span>
+                </label>
+                <input 
+                    type="number" 
+                    min="1" 
+                    max="32" 
+                    value={height} 
+                    onChange={(e) => onHeightChange(parseInt(e.target.value) || 1)}
+                    className="input input-bordered w-full" 
+                />
+            </div>
+        </div>
+    </div>
+);
 
 // --- Main App Component ---
 function App() {
@@ -682,11 +714,19 @@ function App() {
     const editorRef = useRef(null);
     const lineNumbersRef = useRef(null);
 
+    // Add screen dimension state
+    const [screenWidth, setScreenWidth] = useState(10);
+    const [screenHeight, setScreenHeight] = useState(9);
+
     // Initialize Simulator
     useEffect(() => {
         console.log("Initializing simulator (1-based Word Address Mode)...");
         const simulatorInstance = new Batpu2Simulator(); // Simulator now starts PC at 1
         simulatorRef.current = simulatorInstance;
+        
+        // Initialize screen buffer with current dimensions
+        simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
+        
         try { setSimState(simulatorInstance.getState()); }
         catch (error) { console.error("Error getting initial simulator state:", error); setSimState(null); }
         if (simulatorRef.current) {
@@ -774,7 +814,12 @@ function App() {
             setSelectedRegisterIndices([]); 
             setSelectedBinaryAddr(null);
 
-            simulatorRef.current.loadCode(mc); // Resets simulator PC to 1
+            // Create a new simulator instance with current screen dimensions
+            const newSimulator = new Batpu2Simulator();
+            newSimulator.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
+            newSimulator.loadCode(mc); // Resets simulator PC to 1
+            simulatorRef.current = newSimulator;
+            
             setSimState(simulatorRef.current.getState());
             addInteractionLog("Assembly successful (1-based Word Addr Mode).");
             console.log("Assembly successful, code loaded, maps created (1-based Word Addr Mode).");
@@ -800,6 +845,8 @@ function App() {
             setSelectedBinaryAddr(null);
             if (simulatorRef.current) { 
                 simulatorRef.current.reset(); 
+                // Reinitialize screen buffer with current dimensions
+                simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
                 setSimState(simulatorRef.current.getState()); 
             }
             addInteractionLog(`Assembly failed: ${error.message}`);
@@ -817,7 +864,7 @@ function App() {
                 confirmButtonColor: '#3085d6',
             });
         }
-    }, [assemblyCode, isRunning, handlePause, addInteractionLog]);
+    }, [assemblyCode, isRunning, handlePause, addInteractionLog, screenHeight, screenWidth]);
 
     // *** MODIFIED: handleStep uses 1-based word addresses ***
     const handleStep = useCallback(() => {
@@ -868,16 +915,20 @@ function App() {
         setSelectedAsmLine(null); setSelectedRegisterIndices([]); setSelectedBinaryAddr(null); // Clear selections
         if (simulatorRef.current && machineCode) {
              simulatorRef.current.loadCode(machineCode); // Resets PC to 1
+             // Reinitialize screen buffer with current dimensions
+             simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
              setSimState(simulatorRef.current.getState());
              // Check word address 1 in map
              if(addressToLineMap.has(1)) setSelectedAsmLine(addressToLineMap.get(1));
              addInteractionLog("Simulator reset with current code.");
         } else if (simulatorRef.current) {
              simulatorRef.current.reset(); // Resets PC to 1
+             // Reinitialize screen buffer with current dimensions
+             simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
              setSimState(simulatorRef.current.getState());
              addInteractionLog("Simulator reset to initial state.");
         }
-    }, [machineCode, isRunning, handlePause, addressToLineMap, addInteractionLog]);
+    }, [machineCode, isRunning, handlePause, addressToLineMap, addInteractionLog, screenHeight, screenWidth]);
 
     const handleToggleByteOrder = useCallback(() => { setIsByteSwapped(prev => !prev); }, []);
     const handleEditorScroll = useCallback(() => { if (editorRef.current && lineNumbersRef.current) lineNumbersRef.current.scrollTop = editorRef.current.scrollTop; }, []);
@@ -931,6 +982,34 @@ function App() {
         });
     }, [assemblyCode, selectedAsmLine, handleAsmLineClick]);
 
+    // Add handlers for screen dimension changes
+    const handleScreenWidthChange = useCallback((newWidth) => {
+        if (newWidth >= 1 && newWidth <= 32) {
+            setScreenWidth(newWidth);
+            // Reinitialize screen buffer with new dimensions
+            if (simulatorRef.current) {
+                simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(newWidth).fill(0));
+                setSimState(prevState => ({
+                    ...prevState,
+                    screenBuffer: simulatorRef.current.screenBuffer
+                }));
+            }
+        }
+    }, [screenHeight]);
+    
+    const handleScreenHeightChange = useCallback((newHeight) => {
+        if (newHeight >= 1 && newHeight <= 32) {
+            setScreenHeight(newHeight);
+            // Reinitialize screen buffer with new dimensions
+            if (simulatorRef.current) {
+                simulatorRef.current.screenBuffer = Array(newHeight).fill(0).map(() => Array(screenWidth).fill(0));
+                setSimState(prevState => ({
+                    ...prevState,
+                    screenBuffer: simulatorRef.current.screenBuffer
+                }));
+            }
+        }
+    }, [screenWidth]);
 
     // --- JSX Rendering ---
     return (
@@ -939,8 +1018,10 @@ function App() {
                 <div className="flex-1">
                     <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">Batpu2 CPU Simulator</a>
                 </div>
-                <div className="flex-none">
-                    <ThemeSelector />
+                <div className="flex-none gap-2">
+                    <div className="tooltip tooltip-left" data-tip="Change Theme">
+                        <ThemeSelector />
+                    </div>
                 </div>
             </div>
             <main className="container mx-auto px-4 py-6">
@@ -1011,6 +1092,15 @@ function App() {
                                 speed={simSpeed} 
                                 onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
                             />
+                            
+                            {/* Add Screen Configuration Component */}
+                            <ScreenConfig 
+                                width={screenWidth}
+                                height={screenHeight}
+                                onWidthChange={handleScreenWidthChange}
+                                onHeightChange={handleScreenHeightChange}
+                            />
+                            
                             {simState ? (
                                 <div className="simulator-state-display space-y-6">
                                     <StatusInfo isRunning={isRunning} state={simState} />
