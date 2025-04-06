@@ -169,4 +169,53 @@ input:focus {
 .list-item:nth-child(2) { animation-delay: 0.2s; }
 .list-item:nth-child(3) { animation-delay: 0.3s; }
 .list-item:nth-child(4) { animation-delay: 0.4s; }
-.list-item:nth-child(5) { animation-delay: 0.5s; } 
+.list-item:nth-child(5) { animation-delay: 0.5s; }
+
+/* Clock Indicator Styles */
+.clock-indicator {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.clock-indicator.running {
+    background-color: #4CAF50;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.clock-indicator.paused {
+    background-color: #FFA726;
+    color: white;
+}
+
+/* Screen Container States */
+.screen-container {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.screen-container.running {
+    border-color: #4CAF50;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
+.screen-container.paused {
+    border-color: #FFA726;
+    box-shadow: 0 0 10px rgba(255, 167, 38, 0.3);
+}
+
+/* Pulse Animation for Running State */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+} 

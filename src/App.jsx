@@ -5,6 +5,7 @@ import './styles/global.css';
 import ThemeSelector from './components/ThemeSelector';
 import Swal from 'sweetalert2';
 import MapDownloadPopup from './components/MapDownloadPopup';
+import { exampleCodes } from './examples/exampleCodes';
 
 // --- ISA Constants ---
 // (Constants remain the same as provided)
@@ -30,7 +31,7 @@ const opcodesConst = {
 };
 const conditionsConst = { 'EQ': 0b00, 'NE': 0b01, 'GE': 0b10, 'LT': 0b11 };
 const ADDRConst = {
-    PIXEL_X: 240, PIXEL_Y: 241, DRAW_PIXEL: 242, CLEAR_PIXEL: 243,
+    DRAW_PIXEL: 242, CLEAR_PIXEL: 243,
     LOAD_PIXEL: 244, BUFFER_SCREEN: 245, CLEAR_SCR_BUF: 246,
     RNG: 254, CONTROLLER: 255,
 };
@@ -48,16 +49,9 @@ LDI r1, 1      // ball_x = 1
 LDI r2, 1      // ball_y = 1
 LDI r3, 1      // dx = 1
 LDI r4, 1      // dy = 1
-LDI r5, 10      // WIDTH = 9 (0-9)
-LDI r6, 9      // HEIGHT = 8 (0-8)
-LDI r11, 243   // CLEAR_PIXEL address
-LDI r12, 240   // X Address
-LDI r13, 241   // Y Address
-LDI r14, 242   // DRAW_PIXEL address
-LDI r15, 245   // BUFFER_SCREEN address
+LDI r5, 10     // WIDTH = 10 (0-10)
+LDI r6, 9     // HEIGHT = 9 (0-9)
 LDI r8, 1      // Const 1
-LDI r7, 246    // SCREEN_CLEAR address
-STR r7, r8, 0  // Clear screen initially
 
 LOOP_START:
     // Calculate next position
@@ -83,33 +77,16 @@ CHECK_Y:
 NEGATE_DY:
     SUB r0, r4, r4  // dy = -dy
     ADD r2, r4, r10 // Recalculate next_y
-
 UPDATE_POS:
-    // 1. Clear the pixel at the CURRENT position (r1, r2)
-    STR r12, r1, 0  // Set Pixel X to current ball_x (r1)
-    STR r13, r2, 0  // Set Pixel Y to current ball_y (r2)
-    STR r11, r8, 0  // Send Clear Pixel command
-
-    // 2. Update ball coordinates to the calculated next position
     ADD r9, r0, r1  // ball_x = next_x
     ADD r10, r0, r2 // ball_y = next_y
 
-    // 3. Draw the pixel at the NEW position (r1, r2)
-    STR r12, r1, 0  // Set Pixel X to new ball_x
-    STR r13, r2, 0  // Set Pixel Y to new ball_y
-    STR r14, r8, 0  // Send Draw Pixel command
+JMP LOOP_START
 
-    // 4. Update the screen buffer to show changes
-    STR r15, r8, 0  // Buffer Screen command
 
-    // Simple Delay Loop (Using r7 as counter)
-    LDI r7, 20     // Adjust delay value (Lower value = faster)
-DELAY_LOOP:
-    SUB r7, r8, r7  // r7 = r7 - 1
-    BRH GE, DELAY_LOOP // Loop if counter (r7) >= 0
 
-    JMP LOOP_START
 `;
+
 
 // --- Assembler Logic (1-based Word Address Modification) ---
 // (No changes needed from previous version)
@@ -177,13 +154,78 @@ class EightBitCPUSimulatorAssembler {
 // (No changes needed from previous version)
 class EightBitCPUSimulator {
     constructor() { this.maxCycles = 1000000; this.reset(); }
-    reset() { this.registers=new Uint8Array(NUM_REGISTERS); this.pc=1; this.flags={Z:0,C:0}; this.stack=[]; this.halted=false; this.instructionMemory=new Uint8Array(INST_MEM_SIZE_BYTES); this.dataMemory=new Uint8Array(DATA_MEM_SIZE); this.pixelX=0; this.pixelY=0; this.cycleCount=0; this.screenBuffer=Array(SCREEN_HEIGHT).fill(0).map(()=>Array(SCREEN_WIDTH).fill(0)); this.ioReadTrigger=null; this.screenUpdateTrigger=null; }
+    reset() { 
+        this.registers=new Uint8Array(NUM_REGISTERS); 
+        this.pc=1; 
+        this.flags={Z:0,C:0}; 
+        this.stack=[]; 
+        this.halted=false; 
+        this.instructionMemory=new Uint8Array(INST_MEM_SIZE_BYTES); 
+        this.dataMemory=new Uint8Array(DATA_MEM_SIZE); 
+        this.cycleCount=0; 
+        this.screenBuffer=Array(SCREEN_HEIGHT).fill(0).map(()=>Array(SCREEN_WIDTH).fill(0)); 
+        this.ioReadTrigger=null; 
+        this.screenUpdateTrigger=null; 
+    }
     loadCode(machineCode) { this.reset(); if(machineCode.length > INST_MEM_SIZE_BYTES) throw new Error("Machine code too large for byte buffer."); this.instructionMemory.set(machineCode); }
     _fetch() { if (this.pc < 1 || this.pc > INST_MEM_SIZE_WORDS) { throw new Error(`PC (Word Addr ${this.pc}) is out of bounds (1-${INST_MEM_SIZE_WORDS})`); } const byteAddress = (this.pc - 1) * 2; const byte1 = this.instructionMemory[byteAddress]; const byte2 = this.instructionMemory[byteAddress + 1]; return (byte1 << 8) | byte2; }
     _setFlags(result,carry=null) { this.flags.Z=(result&0xFF)===0?1:0; if(carry!==null) this.flags.C=carry; }
     _aluOp(op,valA,valB) { let result=0,carry=0; valA&=0xFF; valB&=0xFF; switch(op){ case 'ADD': case 'ADI': result=valA+valB; carry=(result>0xFF)?1:0; result&=0xFF; break; case 'SUB': result=valA+((~valB&0xFF)+1); carry=(result>0xFF)?1:0; result&=0xFF; break; case 'NOR': result=(~(valA|valB))&0xFF; break; case 'AND': result=(valA&valB)&0xFF; break; case 'XOR': result=(valA^valB)&0xFF; break; case 'RSH': result=(valA>>1)&0xFF; this._setFlags(result,0); return result; default: throw new Error(`Unknown ALU op: ${op}`); } this._setFlags(result,carry); return result; }
-    _readMem(address) { address&=0xFF; switch(address){ case ADDRConst.LOAD_PIXEL: const px=this.pixelX&0x1F, py=this.pixelY&0x1F; return (px<SCREEN_WIDTH&&py<SCREEN_HEIGHT)?this.screenBuffer[py][px]:0; case ADDRConst.RNG: return Math.floor(Math.random()*256); case ADDRConst.CONTROLLER: return this.ioReadTrigger?this.ioReadTrigger(address):0; case ADDRConst.PIXEL_X: case ADDRConst.PIXEL_Y: case ADDRConst.DRAW_PIXEL: case ADDRConst.CLEAR_PIXEL: case ADDRConst.BUFFER_SCREEN: case ADDRConst.CLEAR_SCR_BUF: return 0; default: if(address<DATA_MEM_SIZE) return this.dataMemory[address]; console.warn(`Read invalid data memory addr 0x${address.toString(16)}`); return 0; } }
-    _writeMem(address,value) { address&=0xFF; value&=0xFF; switch(address){ case ADDRConst.PIXEL_X: this.pixelX=value&0x1F; return; case ADDRConst.PIXEL_Y: this.pixelY=value&0x1F; return; case ADDRConst.DRAW_PIXEL: {const px=this.pixelX, py=this.pixelY; if(px<SCREEN_WIDTH&&py<SCREEN_HEIGHT) this.screenBuffer[py][px]=1; return;} case ADDRConst.CLEAR_PIXEL: {const px=this.pixelX, py=this.pixelY; if(px<SCREEN_WIDTH&&py<SCREEN_HEIGHT) this.screenBuffer[py][px]=0; return;} case ADDRConst.BUFFER_SCREEN: if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]); return; case ADDRConst.CLEAR_SCR_BUF: this.screenBuffer=Array(SCREEN_HEIGHT).fill(0).map(()=>Array(SCREEN_WIDTH).fill(0)); if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]); return; case ADDRConst.LOAD_PIXEL: case ADDRConst.RNG: case ADDRConst.CONTROLLER: return; default: if(address<DATA_MEM_SIZE) this.dataMemory[address]=value; else console.warn(`Write invalid data memory addr 0x${address.toString(16)}`); } }
+    _readMem(address) { 
+        address&=0xFF; 
+        switch(address){ 
+            case ADDRConst.LOAD_PIXEL: 
+                const px=this.registers[1]&0x1F, py=this.registers[2]&0x1F; 
+                return (px<SCREEN_WIDTH&&py<SCREEN_HEIGHT)?this.screenBuffer[py][px]:0; 
+            case ADDRConst.RNG: return Math.floor(Math.random()*256); 
+            case ADDRConst.CONTROLLER: return this.ioReadTrigger?this.ioReadTrigger(address):0; 
+            case ADDRConst.DRAW_PIXEL: 
+            case ADDRConst.CLEAR_PIXEL: 
+            case ADDRConst.BUFFER_SCREEN: 
+            case ADDRConst.CLEAR_SCR_BUF: 
+                return 0; 
+            default: 
+                if(address<DATA_MEM_SIZE) return this.dataMemory[address]; 
+                console.warn(`Read invalid data memory addr 0x${address.toString(16)}`); 
+                return 0; 
+        } 
+    }
+    _writeMem(address,value) { 
+        address&=0xFF; 
+        value&=0xFF; 
+        switch(address){ 
+            case ADDRConst.DRAW_PIXEL: {
+                const px=this.registers[1], py=this.registers[2];
+                if(px<SCREEN_WIDTH&&py<SCREEN_HEIGHT) {
+                    this.screenBuffer[py][px]=1;
+                    if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]);
+                }
+                return;
+            }
+            case ADDRConst.CLEAR_PIXEL: {
+                const px=this.registers[1], py=this.registers[2];
+                if(px<SCREEN_WIDTH&&py<SCREEN_HEIGHT) {
+                    this.screenBuffer[py][px]=0;
+                    if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]);
+                }
+                return;
+            }
+            case ADDRConst.BUFFER_SCREEN: 
+                if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]); 
+                return; 
+            case ADDRConst.CLEAR_SCR_BUF: 
+                this.screenBuffer=Array(SCREEN_HEIGHT).fill(0).map(()=>Array(SCREEN_WIDTH).fill(0)); 
+                if(this.screenUpdateTrigger) this.screenUpdateTrigger([...this.screenBuffer.map(row=>[...row])]); 
+                return; 
+            case ADDRConst.LOAD_PIXEL: 
+            case ADDRConst.RNG: 
+            case ADDRConst.CONTROLLER: 
+                return; 
+            default: 
+                if(address<DATA_MEM_SIZE) this.dataMemory[address]=value; 
+                else console.warn(`Write invalid data memory addr 0x${address.toString(16)}`); 
+        } 
+    }
     executeInstruction(instruction) {
         this.registers[0]=0; const opcode=(instruction>>12)&0xF; let nextPc=this.pc + 1;
         const raIdx=(instruction>>8)&0xF, rbIdx=(instruction>>4)&0xF, rcIdx=instruction&0xF;
@@ -521,11 +563,16 @@ const MachineCodeView = ({ machineCode, currentPC, isByteSwapped, onBinaryLineCl
 };
 
 
-// ScreenView (No changes)
-const ScreenView = React.memo(({ screenBuffer }) => (
+// ScreenView (Updated with clock state indicator)
+const ScreenView = React.memo(({ screenBuffer, isRunning }) => (
     <div className="display-section screen-view">
-        <h4>Screen Output</h4>
-        <div className="screen-container" style={{ '--screen-width': SCREEN_WIDTH }}>
+        <div className="flex justify-between items-center mb-2">
+            <h4>Screen Output</h4>
+            <div className={`clock-indicator ${isRunning ? 'running' : 'paused'}`}>
+                {isRunning ? '▶ Running' : '❚❚ Paused'}
+            </div>
+        </div>
+        <div className={`screen-container ${isRunning ? 'running' : 'paused'}`} style={{ '--screen-width': SCREEN_WIDTH }}>
             {screenBuffer.map((row, y) => (
                 <div key={y} className="screen-row">
                     {row.map((pixel, x) => (
@@ -615,7 +662,7 @@ const StatusInfo = ({ isRunning, state }) => {
                         {state?.flags?.C ?? '-'}
                     </div>
                 </div>
-            </div>
+             </div>
         </div>
     );
 };
@@ -720,6 +767,9 @@ function App() {
     const [screenWidth, setScreenWidth] = useState(10);
     const [screenHeight, setScreenHeight] = useState(9);
 
+    // Add new state for IO checkbox
+    const [useIORegisters, setUseIORegisters] = useState(true); // Changed from false to true
+
     // Initialize Simulator
     useEffect(() => {
         console.log("Initializing simulator (1-based Word Address Mode)...");
@@ -754,8 +804,20 @@ function App() {
 
     // --- Callback Definitions ---
     const handlePause = useCallback(() => {
-        if (!isRunning) return; setIsRunning(false); if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    }, [isRunning]);
+        if (!isRunning) return; 
+        setIsRunning(false); 
+        if (intervalRef.current) { 
+            clearInterval(intervalRef.current); 
+            intervalRef.current = null; 
+        }
+        // Clear screen when paused
+        if (simulatorRef.current) {
+            simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
+            if (simulatorRef.current.screenUpdateTrigger) {
+                simulatorRef.current.screenUpdateTrigger([...simulatorRef.current.screenBuffer.map(row => [...row])]);
+            }
+        }
+    }, [isRunning, screenHeight, screenWidth]);
 
     const addInteractionLog = useCallback((message) => {
         setInteractionLog(prevLog => {
@@ -891,25 +953,93 @@ function App() {
 
     // *** MODIFIED: runSimulationCycle uses 1-based word addresses ***
     const runSimulationCycle = useCallback(() => {
-              if (simulatorRef.current && !simulatorRef.current.halted) {
-                  let stepsPerInterval = Math.max(1, Math.floor(50 / simSpeed)); let continueSim = true; let pcBeforeLastStep = simulatorRef.current.pc; // 1-based word address
-                  const regsBeforeCycle = [...simulatorRef.current.registers];
-                  for (let i = 0; i < stepsPerInterval && continueSim; i++) { if (simulatorRef.current.halted) { continueSim = false; break; } pcBeforeLastStep = simulatorRef.current.pc; continueSim = simulatorRef.current.step(); if (!continueSim) break; }
-                  const finalState = simulatorRef.current.getState(); setSimState(finalState); // pc is 1-based word address
-                  if (addressToLineMap.has(pcBeforeLastStep)) setSelectedAsmLine(addressToLineMap.get(pcBeforeLastStep));
-                  setSelectedBinaryAddr(null); // Clear manual binary highlight
-                  let changesFound = false;
-                  for(let i = 0; i < NUM_REGISTERS; i++) { if (regsBeforeCycle[i] !== finalState.registers[i] && selectedRegisterIndices.includes(i)) { if (!changesFound) { addInteractionLog(`Reg changes (Cycle ${finalState.cycleCount}):`); changesFound = true; } addInteractionLog(`  R${i}: ${regsBeforeCycle[i]} -> ${finalState.registers[i]}`); } }
-                  if (!continueSim || simulatorRef.current.halted) { addInteractionLog(`Run halted at PC=${finalState.pc}`); handlePause(); } // Log 1-based word address PC
-               } else { handlePause(); }
-    }, [simSpeed, handlePause, addressToLineMap, addInteractionLog, selectedRegisterIndices]);
+        if (simulatorRef.current && !simulatorRef.current.halted) {
+            let stepsPerInterval = Math.max(1, Math.floor(50 / simSpeed));
+            let continueSim = true;
+            let pcBeforeLastStep = simulatorRef.current.pc;
+            const regsBeforeCycle = [...simulatorRef.current.registers];
+            
+            for (let i = 0; i < stepsPerInterval && continueSim; i++) {
+                if (simulatorRef.current.halted) {
+                    continueSim = false;
+                    break;
+                }
+                pcBeforeLastStep = simulatorRef.current.pc;
+                continueSim = simulatorRef.current.step();
+                if (!continueSim) break;
+            }
+            
+            const finalState = simulatorRef.current.getState();
+            setSimState(finalState);
+            
+            if (addressToLineMap.has(pcBeforeLastStep)) {
+                setSelectedAsmLine(addressToLineMap.get(pcBeforeLastStep));
+            }
+            setSelectedBinaryAddr(null);
+            
+            let changesFound = false;
+            for(let i = 0; i < NUM_REGISTERS; i++) {
+                if (regsBeforeCycle[i] !== finalState.registers[i] && selectedRegisterIndices.includes(i)) {
+                    if (!changesFound) {
+                        addInteractionLog(`Reg changes (Cycle ${finalState.cycleCount}):`);
+                        changesFound = true;
+                    }
+                    addInteractionLog(`  R${i}: ${regsBeforeCycle[i]} -> ${finalState.registers[i]}`);
+                }
+            }
+            
+            if (useIORegisters) {
+                // Get both R1 and R2 values at once
+                const prevR1 = regsBeforeCycle[1];
+                const currentR1 = finalState.registers[1];
+                const prevR2 = regsBeforeCycle[2];
+                const currentR2 = finalState.registers[2];
+                
+                // Only update screen if R2 (Y coordinate) changed
+                if (prevR2 !== currentR2) {
+                    // First, clear the entire screen buffer
+                    simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
+                    
+                    // Then draw the new dot at the current position
+                    if (currentR1 >= 0 && currentR1 < screenWidth && currentR2 >= 0 && currentR2 < screenHeight) {
+                        simulatorRef.current.screenBuffer[currentR2][currentR1] = 1;
+                    }
+                    
+                    // Update screen with the cleared and redrawn buffer
+                    if (simulatorRef.current.screenUpdateTrigger) {
+                        simulatorRef.current.screenUpdateTrigger([...simulatorRef.current.screenBuffer.map(row => [...row])]);
+                    }
+                    
+                    // Log Y position change
+                    addInteractionLog(`Y position updated: ${prevR2} -> ${currentR2} (X: ${currentR1})`);
+                }
+            }
+            
+            if (!continueSim || simulatorRef.current.halted) {
+                addInteractionLog(`Run halted at PC=${finalState.pc}`);
+                handlePause();
+            }
+        } else {
+            handlePause();
+        }
+    }, [simSpeed, handlePause, addressToLineMap, addInteractionLog, selectedRegisterIndices, screenWidth, screenHeight, useIORegisters]);
 
     const handleRun = useCallback(() => {
         if (isRunning || !simulatorRef.current || simulatorRef.current.halted || !machineCode) return;
-        addInteractionLog("Run started."); setSelectedBinaryAddr(null); // Clear manual binary highlight
-        setIsRunning(true); if (intervalRef.current) clearInterval(intervalRef.current);
-        runSimulationCycle(); intervalRef.current = setInterval(runSimulationCycle, Math.max(10, simSpeed));
-    }, [isRunning, machineCode, simSpeed, runSimulationCycle, addInteractionLog]);
+        addInteractionLog("Run started."); 
+        setSelectedBinaryAddr(null); // Clear manual binary highlight
+        // Clear screen when starting run
+        if (simulatorRef.current) {
+            simulatorRef.current.screenBuffer = Array(screenHeight).fill(0).map(() => Array(screenWidth).fill(0));
+            if (simulatorRef.current.screenUpdateTrigger) {
+                simulatorRef.current.screenUpdateTrigger([...simulatorRef.current.screenBuffer.map(row => [...row])]);
+            }
+        }
+        setIsRunning(true); 
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        runSimulationCycle(); 
+        intervalRef.current = setInterval(runSimulationCycle, Math.max(10, simSpeed));
+    }, [isRunning, machineCode, simSpeed, runSimulationCycle, addInteractionLog, screenHeight, screenWidth]);
 
      // *** MODIFIED: handleReset uses 1-based word addresses ***
     const handleReset = useCallback(() => {
@@ -1028,58 +1158,75 @@ function App() {
             </div>
             <main className="container mx-auto px-4 py-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Panel */}
+                {/* Left Panel */}
                     <section className="panel editor-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
                         <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">Code & Assembly</h2>
-                        <div className="editor-container">
+                    <div className="editor-container">
                             <label htmlFor="assemblyEditor" className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">Assembly Code:</label>
                             <div className="editor-wrapper relative">
                                 <div ref={lineNumbersRef} className="line-numbers-display transition-all duration-300 hover:bg-base-300/50 text-base-content/70 absolute left-0 top-0 h-full overflow-y-auto" aria-hidden="true">
-                                    {lineNumbersElements}
-                                </div>
-                                <textarea
-                                    ref={editorRef}
-                                    id="assemblyEditor"
-                                    value={assemblyCode}
-                                    onChange={(e) => setAssemblyCode(e.target.value)}
-                                    onScroll={handleEditorScroll}
-                                    spellCheck="false"
+                                {lineNumbersElements}
+                            </div>
+                            <textarea
+                                ref={editorRef}
+                                id="assemblyEditor"
+                                value={assemblyCode}
+                                onChange={(e) => setAssemblyCode(e.target.value)}
+                                onScroll={handleEditorScroll}
+                                spellCheck="false"
                                     className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content w-full h-64 pl-12"
                                     placeholder="Enter 8bit CPU assembly code..."
-                                />
-                            </div>
+                            />
+                        </div>
                             <div className="flex flex-wrap gap-2 mt-4">
                                 <button 
                                     onClick={handleAssemble} 
                                     className="btn btn-primary transition-all duration-300 hover:scale-105 active:scale-95"
                                 >
-                                    {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
-                                </button>
+                                {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
+                            </button>
                                 <button 
                                     onClick={handleToggleByteOrder} 
                                     className="btn btn-secondary transition-all duration-300 hover:scale-105 active:scale-95" 
                                     title="สลับลำดับการแสดงผล Byte"
                                 >
-                                    สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
-                                </button>
-                            </div>
-                        </div>
+                                สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
+                            </button>
+                                <div className="form-control w-full max-w-xs">
+                                    <select 
+                                        className="select select-accent w-full transition-all duration-300 hover:scale-105 active:scale-95"
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                setAssemblyCode(exampleCodes[e.target.value]);
+                                                e.target.value = ''; // Reset selection
+                                            }
+                                        }}
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Load Example Code</option>
+                                        {Object.keys(exampleCodes).map((name) => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                         </div>
+                    </div>
                         <div className="mt-6">
-                            <MachineCodeView
-                                machineCode={machineCode}
-                                currentPC={simState?.pc}
-                                isByteSwapped={isByteSwapped}
-                                onBinaryLineClick={handleBinaryLineClick}
+                    <MachineCodeView
+                        machineCode={machineCode}
+                        currentPC={simState?.pc}
+                        isByteSwapped={isByteSwapped}
+                        onBinaryLineClick={handleBinaryLineClick}
                                 selectedBinaryAddr={selectedBinaryAddr}
                             />
                         </div>
                         <div className="logs-container transition-all duration-300 hover:bg-base-300/50 mt-6 p-4 rounded-lg">
                             <label className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">ผลลัพธ์ Assembler:</label>
                             <pre className="logs transition-all duration-300 hover:bg-base-300/50 text-base-content/90 overflow-x-auto">{assemblerLogs.join('\n')}</pre>
-                        </div>
-                    </section>
+                    </div>
+                </section>
 
-                    {/* Right Panel */}
+                 {/* Right Panel */}
                     <section className="panel simulator-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
                         <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">ส่วนควบคุมและแสดงผล Simulator</h2>
                         <div className="space-y-6">
@@ -1095,6 +1242,22 @@ function App() {
                                 onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
                             />
                             
+                            {/* Add IO Register Toggle */}
+                            <div className="io-toggle bg-base-200 p-4 rounded-lg shadow-md">
+                                <label className="flex items-center space-x-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={useIORegisters}
+                                        onChange={(e) => setUseIORegisters(e.target.checked)}
+                                        className="checkbox checkbox-primary"
+                                    />
+                                    <span className="text-base-content">Use R1/R2 for Screen Output</span>
+                                </label>
+                                <p className="text-sm text-base-content/70 mt-2">
+                                    When enabled, R1 controls X position and R2 controls Y position of the dot on screen.
+                                </p>
+                            </div>
+                            
                             {/* Add Screen Configuration Component */}
                             <ScreenConfig 
                                 width={screenWidth}
@@ -1103,22 +1266,22 @@ function App() {
                                 onHeightChange={handleScreenHeightChange}
                             />
                             
-                            {simState ? (
+                     {simState ? (
                                 <div className="simulator-state-display space-y-6">
-                                    <StatusInfo isRunning={isRunning} state={simState} />
-                                    <RegistersView
-                                        registers={simState.registers}
-                                        selectedRegisterIndices={selectedRegisterIndices}
-                                        onRegisterClick={handleRegisterClick}
-                                    />
-                                    <ScreenView screenBuffer={simState.screenBuffer} />
-                                    <InteractionLogView logs={interactionLog} />
-                                </div>
-                            ) : (
+                              <StatusInfo isRunning={isRunning} state={simState} />
+                              <RegistersView
+                                   registers={simState.registers}
+                                   selectedRegisterIndices={selectedRegisterIndices}
+                                   onRegisterClick={handleRegisterClick}
+                              />
+                              <ScreenView screenBuffer={simState.screenBuffer} isRunning={isRunning} />
+                              <InteractionLogView logs={interactionLog} />
+                         </div>
+                     ) : (
                                 <p className="info-text transition-all duration-300 hover:bg-base-300/50 hover:text-primary text-base-content/80 p-4 rounded-lg">กด "Assemble Code" เพื่อเริ่มต้น</p>
-                            )}
+                     )}
                         </div>
-                    </section>
+                 </section>
                 </div>
             </main>
             

@@ -9,15 +9,16 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .popup-content {
   background-color: #1a1a1a;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 8px;
-  max-width: 600px;
   width: 90%;
-  max-height: 80vh;
+  max-width: 600px;
+  max-height: 90vh;
   overflow-y: auto;
   color: #ffffff;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -26,7 +27,7 @@
 .popup-content h2 {
   margin: 0 0 1.5rem 0;
   color: #ffffff;
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
   text-align: center;
 }
 
@@ -42,26 +43,37 @@
   padding: 1rem;
   border-radius: 6px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .map-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.map-info {
+  flex: 1;
 }
 
 .map-info h3 {
   margin: 0 0 0.5rem 0;
   color: #ffffff;
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 3vw, 1.1rem);
 }
 
 .map-info p {
   margin: 0;
   color: #cccccc;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
 }
 
 .map-size {
   color: #888888 !important;
-  font-size: 0.8rem !important;
+  font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
   margin-top: 0.5rem !important;
 }
 
@@ -72,9 +84,10 @@
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
   transition: background-color 0.2s;
   white-space: nowrap;
+  min-width: 100px;
 }
 
 .download-button:hover {
@@ -93,7 +106,7 @@
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
   transition: background-color 0.2s;
   width: 100%;
   margin-top: 1rem;
@@ -127,10 +140,18 @@
 
 .progress-details {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.5rem;
   color: #cccccc;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+}
+
+@media (min-width: 480px) {
+  .progress-details {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 }
 
 .progress-text {
