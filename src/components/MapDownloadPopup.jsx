@@ -8,6 +8,7 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
   const [downloadSpeed, setDownloadSpeed] = useState('0 KB/s');
   const [timeRemaining, setTimeRemaining] = useState('Calculating...');
   const [fileSize, setFileSize] = useState('Calculating...');
+  const [lastUpdateTime, setLastUpdateTime] = useState('Fetching...');
 
   const maps = [
     {
@@ -49,9 +50,34 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
     }
   };
 
+  const fetchLastUpdateTime = async () => {
+    try {
+      const responseContent = await fetch('https://api.github.com/repos/moszer/simulation_redstone_computer/contents/src/minecraftWorld/8bit_redstone_com.mcworld');
+      if (!responseContent.ok) throw new Error('Failed to fetch file content data');
+      const dataContent = await responseContent.json();
+      const sha = dataContent.sha;
+
+      const responseCommit = await fetch(`https://api.github.com/repos/moszer/simulation_redstone_computer/commits?path=src/minecraftWorld/8bit_redstone_com.mcworld&sha=main`);
+      if (!responseCommit.ok) throw new Error('Failed to fetch commit data');
+      const dataCommit = await responseCommit.json();
+
+      if (dataCommit.length > 0) {
+        const lastCommit = dataCommit[0];
+        const date = new Date(lastCommit.commit.committer.date);
+        setLastUpdateTime(date.toLocaleString());
+      } else {
+        setLastUpdateTime('Unknown');
+      }
+    } catch (error) {
+      console.error('Error fetching last update time:', error);
+      setLastUpdateTime('Unknown');
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchFileSize(maps[0].url);
+      fetchLastUpdateTime();
     }
   }, [isOpen]);
 
@@ -148,6 +174,7 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
                 <h3>{map.name}</h3>
                 <p>{map.description}</p>
                 <p className="map-size">Size: {fileSize}</p>
+                <p className="map-update-time">Last updated: {lastUpdateTime}</p>
               </div>
               <button
                 className="download-button"
@@ -182,4 +209,4 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
   );
 };
 
-export default MapDownloadPopup; 
+export default MapDownloadPopup;
