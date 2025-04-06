@@ -6,6 +6,7 @@ import ThemeSelector from './components/ThemeSelector';
 import Swal from 'sweetalert2';
 import MapDownloadPopup from './components/MapDownloadPopup';
 import { exampleCodes } from './examples/exampleCodes';
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 // --- ISA Constants ---
 // (Constants remain the same as provided)
@@ -1145,186 +1146,189 @@ function App() {
 
     // --- JSX Rendering ---
     return (
-        <div className="min-h-screen bg-base-300 transition-all duration-300">
-            <div className="navbar bg-base-300 shadow-lg transition-all duration-300">
-                <div className="flex-1">
-                    <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">8bit CPU Simulator</a>
-                </div>
-                <div className="flex-none gap-2">
-                    <div className="tooltip tooltip-left" data-tip="Change Theme">
-                        <ThemeSelector />
+        <div className="min-h-screen bg-gray-100">
+            <SpeedInsights />
+            <div className="min-h-screen bg-base-300 transition-all duration-300">
+                <div className="navbar bg-base-300 shadow-lg transition-all duration-300">
+                    <div className="flex-1">
+                        <a className="btn btn-ghost text-xl transition-all duration-300 hover:bg-base-200 text-base-content">8bit CPU Simulator</a>
+                    </div>
+                    <div className="flex-none gap-2">
+                        <div className="tooltip tooltip-left" data-tip="Change Theme">
+                            <ThemeSelector />
+                        </div>
                     </div>
                 </div>
-            </div>
-            <main className="container mx-auto px-4 py-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Panel */}
-                    <section className="panel editor-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
-                        <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">Code & Assembly</h2>
-                    <div className="editor-container">
-                            <label htmlFor="assemblyEditor" className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">Assembly Code:</label>
-                            <div className="editor-wrapper relative">
-                                <div ref={lineNumbersRef} className="line-numbers-display transition-all duration-300 hover:bg-base-300/50 text-base-content/70 absolute left-0 top-0 h-full overflow-y-auto" aria-hidden="true">
-                                {lineNumbersElements}
-                            </div>
-                            <textarea
-                                ref={editorRef}
-                                id="assemblyEditor"
-                                value={assemblyCode}
-                                onChange={(e) => setAssemblyCode(e.target.value)}
-                                onScroll={handleEditorScroll}
-                                spellCheck="false"
-                                    className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content w-full h-64 pl-12"
-                                    placeholder="Enter 8bit CPU assembly code..."
-                            />
-                        </div>
-                            <div className="flex flex-wrap gap-2 mt-4">
-                                <button 
-                                    onClick={handleAssemble} 
-                                    className="btn btn-primary transition-all duration-300 hover:scale-105 active:scale-95"
-                                >
-                                {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
-                            </button>
-                                <button 
-                                    onClick={handleToggleByteOrder} 
-                                    className="btn btn-secondary transition-all duration-300 hover:scale-105 active:scale-95" 
-                                    title="สลับลำดับการแสดงผล Byte"
-                                >
-                                สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
-                            </button>
-                                <div className="form-control w-full max-w-xs">
-                                    <select 
-                                        className="select select-accent w-full transition-all duration-300 hover:scale-105 active:scale-95"
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                setAssemblyCode(exampleCodes[e.target.value]);
-                                                e.target.value = ''; // Reset selection
-                                            }
-                                        }}
-                                        defaultValue=""
-                                    >
-                                        <option value="" disabled>Load Example Code</option>
-                                        {Object.keys(exampleCodes).map((name) => (
-                                            <option key={name} value={name}>{name}</option>
-                                        ))}
-                                    </select>
+                <main className="container mx-auto px-4 py-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Panel */}
+                        <section className="panel editor-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
+                            <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">Code & Assembly</h2>
+                        <div className="editor-container">
+                                <label htmlFor="assemblyEditor" className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">Assembly Code:</label>
+                                <div className="editor-wrapper relative">
+                                    <div ref={lineNumbersRef} className="line-numbers-display transition-all duration-300 hover:bg-base-300/50 text-base-content/70 absolute left-0 top-0 h-full overflow-y-auto" aria-hidden="true">
+                                    {lineNumbersElements}
                                 </div>
-                         </div>
-                    </div>
-                        <div className="mt-6">
-                    <MachineCodeView
-                        machineCode={machineCode}
-                        currentPC={simState?.pc}
-                        isByteSwapped={isByteSwapped}
-                        onBinaryLineClick={handleBinaryLineClick}
-                                selectedBinaryAddr={selectedBinaryAddr}
-                            />
-                        </div>
-                        <div className="logs-container transition-all duration-300 hover:bg-base-300/50 mt-6 p-4 rounded-lg">
-                            <label className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">ผลลัพธ์ Assembler:</label>
-                            <pre className="logs transition-all duration-300 hover:bg-base-300/50 text-base-content/90 overflow-x-auto">{assemblerLogs.join('\n')}</pre>
-                    </div>
-                </section>
-
-                 {/* Right Panel */}
-                    <section className="panel simulator-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
-                        <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">ส่วนควบคุมและแสดงผล Simulator</h2>
-                        <div className="space-y-6">
-                            <SimulatorControls
-                                isRunning={isRunning} 
-                                isHalted={simState?.halted ?? true} 
-                                hasCode={!!machineCode}
-                                onRun={handleRun} 
-                                onPause={handlePause} 
-                                onStep={handleStep} 
-                                onReset={handleReset}
-                                speed={simSpeed} 
-                                onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
-                            />
-                            
-                            {/* Add IO Register Toggle */}
-                            <div className="io-toggle bg-base-200 p-4 rounded-lg shadow-md">
-                                <label className="flex items-center space-x-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={useIORegisters}
-                                        onChange={(e) => setUseIORegisters(e.target.checked)}
-                                        className="checkbox checkbox-primary"
-                                    />
-                                    <span className="text-base-content">Use R1/R2 for Screen Output</span>
-                                </label>
-                                <p className="text-sm text-base-content/70 mt-2">
-                                    When enabled, R1 controls X position and R2 controls Y position of the dot on screen.
-                                </p>
+                                <textarea
+                                    ref={editorRef}
+                                    id="assemblyEditor"
+                                    value={assemblyCode}
+                                    onChange={(e) => setAssemblyCode(e.target.value)}
+                                    onScroll={handleEditorScroll}
+                                    spellCheck="false"
+                                        className="code-editor transition-all duration-300 focus:border-primary focus:ring-2 focus:ring-primary/20 hover:border-primary/50 hover:bg-base-300/50 text-base-content w-full h-64 pl-12"
+                                        placeholder="Enter 8bit CPU assembly code..."
+                                />
                             </div>
-                            
-                            {/* Add Screen Configuration Component */}
-                            <ScreenConfig 
-                                width={screenWidth}
-                                height={screenHeight}
-                                onWidthChange={handleScreenWidthChange}
-                                onHeightChange={handleScreenHeightChange}
-                            />
-                            
-                     {simState ? (
-                                <div className="simulator-state-display space-y-6">
-                              <StatusInfo isRunning={isRunning} state={simState} />
-                              <RegistersView
-                                   registers={simState.registers}
-                                   selectedRegisterIndices={selectedRegisterIndices}
-                                   onRegisterClick={handleRegisterClick}
-                              />
-                              <ScreenView screenBuffer={simState.screenBuffer} isRunning={isRunning} />
-                              <InteractionLogView logs={interactionLog} />
-                         </div>
-                     ) : (
-                                <p className="info-text transition-all duration-300 hover:bg-base-300/50 hover:text-primary text-base-content/80 p-4 rounded-lg">กด "Assemble Code" เพื่อเริ่มต้น</p>
-                     )}
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    <button 
+                                        onClick={handleAssemble} 
+                                        className="btn btn-primary transition-all duration-300 hover:scale-105 active:scale-95"
+                                    >
+                                    {machineCode ? 'Assemble ใหม่' : 'Assemble Code'}
+                                </button>
+                                    <button 
+                                        onClick={handleToggleByteOrder} 
+                                        className="btn btn-secondary transition-all duration-300 hover:scale-105 active:scale-95" 
+                                        title="สลับลำดับการแสดงผล Byte"
+                                    >
+                                    สลับ Byte Order ({isByteSwapped ? 'Byte2 <-> Byte1' : 'Byte1 <-> Byte2'})
+                                </button>
+                                    <div className="form-control w-full max-w-xs">
+                                        <select 
+                                            className="select select-accent w-full transition-all duration-300 hover:scale-105 active:scale-95"
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    setAssemblyCode(exampleCodes[e.target.value]);
+                                                    e.target.value = ''; // Reset selection
+                                                }
+                                            }}
+                                            defaultValue=""
+                                        >
+                                            <option value="" disabled>Load Example Code</option>
+                                            {Object.keys(exampleCodes).map((name) => (
+                                                <option key={name} value={name}>{name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                             </div>
                         </div>
-                 </section>
-                </div>
-            </main>
-            
-            {/* Footer with License Information */}
-            <footer className="footer footer-center p-4 bg-base-300 text-base-content border-t border-base-300 mt-6">
-                <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2 flex-wrap justify-center">
-                        <span>Licensed under</span>
-                        <a 
-                            href="https://github.com/moszer/simulation_redstone_computer/blob/main/LICENSE" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="badge badge-primary hover:badge-primary-focus transition-all duration-300"
-                        >
-                            MIT License
-                        </a>
+                            <div className="mt-6">
+                        <MachineCodeView
+                            machineCode={machineCode}
+                            currentPC={simState?.pc}
+                            isByteSwapped={isByteSwapped}
+                            onBinaryLineClick={handleBinaryLineClick}
+                                    selectedBinaryAddr={selectedBinaryAddr}
+                                />
+                            </div>
+                            <div className="logs-container transition-all duration-300 hover:bg-base-300/50 mt-6 p-4 rounded-lg">
+                                <label className="input-label transition-all duration-300 hover:text-primary text-base-content block mb-2">ผลลัพธ์ Assembler:</label>
+                                <pre className="logs transition-all duration-300 hover:bg-base-300/50 text-base-content/90 overflow-x-auto">{assemblerLogs.join('\n')}</pre>
+                        </div>
+                    </section>
+
+                     {/* Right Panel */}
+                        <section className="panel simulator-panel bg-base-200 transition-all duration-300 hover:shadow-lg hover:bg-base-200/90 rounded-lg p-4">
+                            <h2 className="panel-title transition-all duration-300 hover:text-primary text-base-content text-xl font-bold mb-4">ส่วนควบคุมและแสดงผล Simulator</h2>
+                            <div className="space-y-6">
+                                <SimulatorControls
+                                    isRunning={isRunning} 
+                                    isHalted={simState?.halted ?? true} 
+                                    hasCode={!!machineCode}
+                                    onRun={handleRun} 
+                                    onPause={handlePause} 
+                                    onStep={handleStep} 
+                                    onReset={handleReset}
+                                    speed={simSpeed} 
+                                    onSpeedChange={(e) => setSimSpeed(Number(e.target.value))}
+                                />
+                                
+                                {/* Add IO Register Toggle */}
+                                <div className="io-toggle bg-base-200 p-4 rounded-lg shadow-md">
+                                    <label className="flex items-center space-x-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={useIORegisters}
+                                            onChange={(e) => setUseIORegisters(e.target.checked)}
+                                            className="checkbox checkbox-primary"
+                                        />
+                                        <span className="text-base-content">Use R1/R2 for Screen Output</span>
+                                    </label>
+                                    <p className="text-sm text-base-content/70 mt-2">
+                                        When enabled, R1 controls X position and R2 controls Y position of the dot on screen.
+                                    </p>
+                                </div>
+                                
+                                {/* Add Screen Configuration Component */}
+                                <ScreenConfig 
+                                    width={screenWidth}
+                                    height={screenHeight}
+                                    onWidthChange={handleScreenWidthChange}
+                                    onHeightChange={handleScreenHeightChange}
+                                />
+                                
+                         {simState ? (
+                                    <div className="simulator-state-display space-y-6">
+                                  <StatusInfo isRunning={isRunning} state={simState} />
+                                  <RegistersView
+                                       registers={simState.registers}
+                                       selectedRegisterIndices={selectedRegisterIndices}
+                                       onRegisterClick={handleRegisterClick}
+                                  />
+                                  <ScreenView screenBuffer={simState.screenBuffer} isRunning={isRunning} />
+                                  <InteractionLogView logs={interactionLog} />
+                             </div>
+                         ) : (
+                                    <p className="info-text transition-all duration-300 hover:bg-base-300/50 hover:text-primary text-base-content/80 p-4 rounded-lg">กด "Assemble Code" เพื่อเริ่มต้น</p>
+                         )}
+                            </div>
+                     </section>
                     </div>
-                    <div className="text-sm opacity-70 text-center">
-                        © 2024 Pattarapon Parkodchue (
-                        <a 
-                            href="https://github.com/moszer" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="link link-primary hover:link-primary-focus transition-all duration-300"
-                        >
-                            @moszer
-                        </a>
-                        )
+                </main>
+                
+                {/* Footer with License Information */}
+                <footer className="footer footer-center p-4 bg-base-300 text-base-content border-t border-base-300 mt-6">
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-center">
+                            <span>Licensed under</span>
+                            <a 
+                                href="https://github.com/moszer/simulation_redstone_computer/blob/main/LICENSE" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="badge badge-primary hover:badge-primary-focus transition-all duration-300"
+                            >
+                                MIT License
+                            </a>
+                        </div>
+                        <div className="text-sm opacity-70 text-center">
+                            © 2024 Pattarapon Parkodchue (
+                            <a 
+                                href="https://github.com/moszer" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="link link-primary hover:link-primary-focus transition-all duration-300"
+                            >
+                                @moszer
+                            </a>
+                            )
+                        </div>
                     </div>
-                </div>
-            </footer>
-            
-            <button 
-                className="download-map-button"
-                onClick={() => setIsPopupOpen(true)}
-            >
-                Download Maps
-            </button>
-            
-            <MapDownloadPopup 
-                isOpen={isPopupOpen}
-                onClose={() => setIsPopupOpen(false)}
-            />
+                </footer>
+                
+                <button 
+                    className="download-map-button"
+                    onClick={() => setIsPopupOpen(true)}
+                >
+                    Download Maps
+                </button>
+                
+                <MapDownloadPopup 
+                    isOpen={isPopupOpen}
+                    onClose={() => setIsPopupOpen(false)}
+                />
+            </div>
         </div>
     );
 }
