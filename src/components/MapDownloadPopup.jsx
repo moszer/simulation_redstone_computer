@@ -2,29 +2,68 @@ import React, { useState } from 'react';
 import '../styles/MapDownloadPopup.css';
 
 const MapDownloadPopup = ({ isOpen, onClose }) => {
-  const [selectedMap, setSelectedMap] = useState('');
+  const [selectedMap, setSelectedMap] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const maps = [
-    { id: 1, name: 'Redstone Computer Map', size: '2.5MB', description: 'A complex redstone computer simulation map' },
-    { id: 2, name: 'Basic Logic Gates', size: '1.2MB', description: 'Collection of basic logic gates' },
-    { id: 3, name: 'Advanced Circuits', size: '3.8MB', description: 'Advanced redstone circuits and components' },
+    {
+      id: 1,
+      name: '8-bit Redstone Computer',
+      size: '780 KB',
+      description: 'A fully functional 8-bit redstone computer built in Minecraft created by Moszer',
+      url: 'https://raw.githubusercontent.com/moszer/simulation_redstone_computer/main/src/minecraftWorld/8bit_redstone_com.mcworld'
+    }
   ];
 
-  const handleDownload = (map) => {
-    setSelectedMap(map.name);
-    // Simulate download progress
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setDownloadProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          onClose();
-        }, 1000);
+  const handleDownload = async (map) => {
+    try {
+      setIsDownloading(true);
+      setSelectedMap(map);
+      setDownloadProgress(0);
+
+      const response = await fetch(map.url);
+      if (!response.ok) throw new Error('Download failed');
+
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength, 10);
+      let loaded = 0;
+
+      const reader = response.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        chunks.push(value);
+        loaded += value.length;
+        const progress = (loaded / total) * 100;
+        setDownloadProgress(Math.min(progress, 100));
       }
-    }, 500);
+
+      const blob = new Blob(chunks, { type: 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${map.name}.mcworld`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Simulate a small delay to show 100% completion
+      setTimeout(() => {
+        setIsDownloading(false);
+        setDownloadProgress(0);
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download the map. Please try again.');
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
   };
 
   if (!isOpen) return null;
@@ -39,27 +78,29 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
               <div className="map-info">
                 <h3>{map.name}</h3>
                 <p>{map.description}</p>
-                <span className="map-size">Size: {map.size}</span>
+                <p className="map-size">Size: {map.size}</p>
               </div>
-              <button 
+              <button
                 className="download-button"
                 onClick={() => handleDownload(map)}
-                disabled={selectedMap === map.name}
+                disabled={isDownloading && selectedMap?.id === map.id}
               >
-                {selectedMap === map.name ? (
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill"
-                      style={{ width: `${downloadProgress}%` }}
-                    />
-                  </div>
-                ) : (
-                  'Download'
-                )}
+                {isDownloading && selectedMap?.id === map.id ? 'Downloading...' : 'Download'}
               </button>
             </div>
           ))}
         </div>
+        {isDownloading && (
+          <div className="progress-container">
+            <div className="progress-bar">
+              <div
+                className="progress-fill"
+                style={{ width: `${downloadProgress}%` }}
+              />
+            </div>
+            <span className="progress-text">{Math.round(downloadProgress)}%</span>
+          </div>
+        )}
         <button className="close-button" onClick={onClose}>
           Close
         </button>
