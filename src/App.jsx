@@ -4,6 +4,7 @@ import './styles/MachineCodeView.css';
 import './styles/global.css';
 import ThemeSelector from './components/ThemeSelector';
 import Swal from 'sweetalert2';
+import MapDownloadPopup from './components/MapDownloadPopup';
 
 // --- ISA Constants ---
 // (Constants remain the same as provided)
@@ -684,6 +685,7 @@ function App() {
     const [selectedRegisterIndices, setSelectedRegisterIndices] = useState([]);
     const [interactionLog, setInteractionLog] = useState([]);
     const [selectedBinaryAddr, setSelectedBinaryAddr] = useState(null); // Stores 1-based word address
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
 
     // Add theme state
     const [theme, setTheme] = useState(() => {
@@ -1148,6 +1150,18 @@ function App() {
                     </div>
                 </div>
             </footer>
+            
+            <button 
+                className="download-map-button"
+                onClick={() => setIsPopupOpen(true)}
+            >
+                Download Maps
+            </button>
+            
+            <MapDownloadPopup 
+                isOpen={isPopupOpen}
+                onClose={() => setIsPopupOpen(false)}
+            />
         </div>
     );
 }
