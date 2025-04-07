@@ -77,6 +77,13 @@
   margin-top: 0.5rem !important;
 }
 
+.map-update-time {
+  color: #888888 !important;
+  font-size: clamp(0.7rem, 2vw, 0.8rem) !important;
+  margin-top: 0.25rem !important;
+  font-style: italic;
+}
+
 .download-button {
   background-color: #4CAF50;
   color: white;
