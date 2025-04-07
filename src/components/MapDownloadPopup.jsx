@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/MapDownloadPopup.css';
+import ReactGA from "react-ga4"; // Import ReactGA
 
 const MapDownloadPopup = ({ isOpen, onClose }) => {
   const [selectedMap, setSelectedMap] = useState(null);
@@ -151,6 +152,12 @@ const MapDownloadPopup = ({ isOpen, onClose }) => {
         setTimeRemaining('Calculating...');
         onClose();
       }, 1000);
+      // Send a download event to GA4
+      ReactGA.event({
+        category: "Map Download",
+        action: "Download Started",
+        label: map.name,
+      });
     } catch (error) {
       console.error('Download error:', error);
       alert('Failed to download the map. Please try again.');
